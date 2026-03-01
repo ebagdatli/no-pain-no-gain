@@ -29,6 +29,12 @@ ExercisePrediction/
 │   └── predict.py
 ├── app/
 │   └── streamlit_app.py
+├── hf_space/         # Hugging Face Space deployment files
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── app.py        # Combined UI + WebRTC camera
+│   └── models/       # Copy trained model files here before deploy
 └── requirements.txt
 ```
 
@@ -66,6 +72,48 @@ cd ExercisePrediction && venv\Scripts\python -m src.camera_demo
 # Or from repo root: python -m ExercisePrediction.src.camera_demo
 # Press 'q' to quit. Requires trained model (metadata.json, scaler.pkl, etc.)
 ```
+
+## Hugging Face Space Deploy
+
+Uygulamayi Hugging Face Spaces uzerinde yayinlamak icin `hf_space/` klasoru hazir dosyalar icerir. Docker SDK + streamlit-webrtc ile tarayici icinden kamera erisimi saglanir.
+
+### Adimlar
+
+1. [huggingface.co/new-space](https://huggingface.co/new-space) adresinden yeni Space olusturun:
+   - **SDK**: Docker
+   - **Hardware**: CPU Basic (ucretsiz)
+
+2. Space reposunu klonlayin:
+   ```bash
+   git clone https://huggingface.co/spaces/KULLANICI_ADI/SPACE_ADI
+   cd SPACE_ADI
+   ```
+
+3. `hf_space/` icerigini klonlanan repoya kopyalayin:
+   ```bash
+   cp -r /path/to/ExercisePrediction/hf_space/* .
+   ```
+
+4. Egitilmis model dosyalarini `models/` klasorune kopyalayin:
+   ```bash
+   cp /path/to/ExercisePrediction/models/*.pkl models/
+   cp /path/to/ExercisePrediction/models/*.json models/
+   ```
+
+5. Buyuk dosyalar icin Git LFS ayarlayin:
+   ```bash
+   git lfs install
+   git lfs track "*.pkl"
+   git lfs track "*.pt"
+   git add .gitattributes
+   ```
+
+6. Push edin:
+   ```bash
+   git add . && git commit -m "Initial deployment" && git push
+   ```
+
+HF Spaces otomatik olarak Docker image'i build edip deploy edecektir. `pose_landmarker_lite.task` dosyasi calisma zamaninda otomatik indirilir.
 
 ## Roadmap (v2)
 
