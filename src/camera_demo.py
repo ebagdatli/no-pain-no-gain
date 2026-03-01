@@ -50,6 +50,53 @@ NAME_ALIASES = {
     "left_pinky_1": "left_pinky", "right_pinky_1": "right_pinky",
 }
 
+# Turkce hareket karsiliklari (pose label -> Turkce gosterim)
+POSE_TO_TURKISH = {
+    "situp_up": "Mekik (Yukari)",
+    "situp_down": "Mekik (Asagi)",
+    "pushups_up": "Sinav (Yukari)",
+    "pushups_down": "Sinav (Asagi)",
+    "pullups_up": "Barfiks (Yukari)",
+    "pullups_down": "Barfiks (Asagi)",
+    "squats_up": "Squat (Yukari)",
+    "squats_down": "Squat (Asagi)",
+    "jumping_jacks_up": "Ziplama (Yukari)",
+    "jumping_jacks_down": "Ziplama (Asagi)",
+    "Belirsiz": "Belirsiz",
+}
+
+
+def label_to_turkish(label):
+    """Pose etiketini Turkce karsiligina cevir."""
+    return POSE_TO_TURKISH.get(label, label)
+
+
+def draw_overlay_panel(frame, label, conf, reps):
+    """
+    Ekranda okunakli bir bilgi paneli cizer.
+    Yari saydam arka plan, buyuk font, Turkce etiket.
+    """
+    h, w = frame.shape[:2]
+    panel_h = 120
+    panel_w = min(400, w - 20)
+    x1, y1 = 10, 10
+    x2, y2 = x1 + panel_w, y1 + panel_h
+
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (x1, y1), (x2, y2), (30, 30, 30), -1)
+    cv2.addWeighted(overlay, 0.75, frame, 0.25, 0, frame)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 100), 2)
+
+    turkce = label_to_turkish(label)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.9
+    thickness = 2
+    color = (0, 255, 150) if label != "Belirsiz" else (100, 100, 100)
+
+    cv2.putText(frame, f"Hareket: {turkce}", (x1 + 12, y1 + 38), font, font_scale, color, thickness)
+    cv2.putText(frame, f"Guven: %{conf * 100:.0f}", (x1 + 12, y1 + 72), font, 0.7, (200, 200, 200), thickness)
+    cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 102), font, 0.8, (0, 255, 200), thickness)
+
 
 def ensure_pose_model():
     """Download pose_landmarker model if not present."""
@@ -236,28 +283,18 @@ def main():
                             model, encoder, scaler, categories, model_type, X, buffer
                         )
                         last_down_exercise, reps = rep_counter_logic(buffer, last_down_exercise, reps)
-
-                        cv2.putText(
-                            frame, f"Pose: {label} ({conf:.0%})",
-                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2
-                        )
-                        cv2.putText(
-                            frame, f"Reps: {reps}",
-                            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2
-                        )
+                        draw_overlay_panel(frame, label, conf, reps)
                 except Exception as e:
                     cv2.putText(
                         frame, f"Error: {e}",
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1
                     )
             else:
+                draw_overlay_panel(frame, "Belirsiz", 0.0, reps)
+                h, w = frame.shape[:2]
                 cv2.putText(
-                    frame, "Kullanici bekleniyor - Tam profilde durun",
-                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2
-                )
-                cv2.putText(
-                    frame, "Iyi aydinlatilmis ortamda calisir",
-                    (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 1
+                    frame, "Tam profilde durun, iyi aydinlatilmis ortam",
+                    (10, h - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 165, 255), 1
                 )
 
             cv2.imshow("Exercise Pose Detection", frame)
