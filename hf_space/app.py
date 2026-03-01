@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent
 MODELS_DIR = ROOT / "models"
+if not (MODELS_DIR / "meta.pkl").exists():
+    MODELS_DIR = ROOT
 POSE_MODEL_PATH = MODELS_DIR / "pose_landmarker_lite.task"
 POSE_MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
@@ -453,8 +455,9 @@ def load_all_artifacts():
     model_type = meta.get("model_type", "xgboost")
 
     model_path = meta.get("model_path")
-    if model_path and not Path(model_path).is_absolute():
-        model_path = MODELS_DIR / Path(model_path).name
+    if model_path:
+        filename = model_path.replace("\\", "/").split("/")[-1]
+        model_path = MODELS_DIR / filename
 
     if model_type == "xgboost":
         ml_model = load(model_path)
