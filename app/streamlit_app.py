@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 
 import streamlit as st
-import pandas as pd
-import numpy as np
 from joblib import load
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -460,20 +458,6 @@ def load_model_and_artifacts():
     return model, encoder, scaler, categories, model_type
 
 
-def predict_csv(model, encoder, scaler, categories, model_type, X: np.ndarray):
-    X_scaled = scaler.transform(X)
-    if model_type == "xgboost":
-        pred_indices = model.predict(X_scaled)
-    else:
-        import torch
-
-        with torch.no_grad():
-            X_t = torch.from_numpy(X_scaled.astype(np.float32))
-            outputs = model(X_t)
-            _, pred_indices = torch.max(outputs, 1)
-            pred_indices = pred_indices.numpy()
-    return [encoder.inverse_transform([i])[0] for i in pred_indices]
-
 
 # ---------------------------------------------------------------------------
 # UI Sections
@@ -659,70 +643,6 @@ def render_workout_launcher():
             )
 
 
-def render_csv_section(model, encoder, scaler, categories, model_type):
-    st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="sec-title" style="font-size:1.4rem;">Gelismis Araclar</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="sec-sub">CSV dosyasi ile toplu tahmin yapabilirsiniz</div>',
-        unsafe_allow_html=True,
-    )
-
-    with st.expander("CSV ile Toplu Tahmin"):
-        st.markdown(
-            """
-            <div style="color:#7a7a95; font-size:0.9rem; margin-bottom:1rem; line-height:1.6;">
-                Egzersiz landmark verilerini iceren bir CSV dosyasi yukleyerek toplu tahmin
-                yapabilirsiniz. CSV, egitim verisiyle ayni 99 landmark sutununu icermelidir
-                (33 landmark &times; 3 eksen).
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        uploaded = st.file_uploader(
-            "CSV dosyasi sec", type=["csv"], label_visibility="collapsed"
-        )
-        if uploaded is not None:
-            try:
-                df = pd.read_csv(uploaded)
-            except Exception as e:
-                st.error(f"CSV okunamadi: {e}")
-                return
-
-            feature_cols = [c for c in df.columns if c not in ("pose_id", "pose")]
-            if len(feature_cols) == 0:
-                st.error("Landmark sutunlari bulunamadi.")
-                return
-
-            X = df[feature_cols].values
-            if X.shape[1] != scaler.n_features_in_:
-                st.error(
-                    f"Beklenen {scaler.n_features_in_} ozellik, "
-                    f"CSV'de {X.shape[1]} bulundu."
-                )
-                return
-
-            if st.button("Tahmin Et", type="secondary"):
-                preds = predict_csv(
-                    model, encoder, scaler, categories, model_type, X
-                )
-                df_result = df.copy()
-                df_result["predicted_pose"] = preds
-
-                st.dataframe(df_result, use_container_width=True)
-
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.markdown("**Siniflar:**")
-                    st.write(", ".join(categories))
-                with col_b:
-                    st.markdown("**Tahmin Dagilimi:**")
-                    dist = pd.Series(preds).value_counts()
-                    st.bar_chart(dist)
-
 
 def render_footer():
     st.markdown(
@@ -784,7 +704,6 @@ def main():
     render_how_it_works()
     render_exercises()
     render_workout_launcher()
-    render_csv_section(model, encoder, scaler, categories, model_type)
     render_footer()
 
 

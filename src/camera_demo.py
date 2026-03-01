@@ -1,7 +1,7 @@
 """
 Real-time exercise pose detection via webcam.
 Uses MediaPipe Tasks for pose estimation, trained model for classification.
-Includes smoothing, rep counter, and skeleton overlay.
+Includes smoothing and skeleton overlay.
 """
 import json
 import sys
@@ -71,13 +71,13 @@ def label_to_turkish(label):
     return POSE_TO_TURKISH.get(label, label)
 
 
-def draw_overlay_panel(frame, label, conf, reps):
+def draw_overlay_panel(frame, label, conf):
     """
     Ekranda okunakli bir bilgi paneli cizer.
     Yari saydam arka plan, buyuk font, Turkce etiket.
     """
     h, w = frame.shape[:2]
-    panel_h = 120
+    panel_h = 90
     panel_w = min(400, w - 20)
     x1, y1 = 10, 10
     x2, y2 = x1 + panel_w, y1 + panel_h
@@ -95,7 +95,6 @@ def draw_overlay_panel(frame, label, conf, reps):
 
     cv2.putText(frame, f"Hareket: {turkce}", (x1 + 12, y1 + 38), font, font_scale, color, thickness)
     cv2.putText(frame, f"Guven: %{conf * 100:.0f}", (x1 + 12, y1 + 72), font, 0.7, (200, 200, 200), thickness)
-    cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 102), font, 0.8, (0, 255, 200), thickness)
 
 
 def ensure_pose_model():
@@ -205,28 +204,6 @@ def predict_with_smoothing(model, encoder, scaler, categories, model_type, X, bu
     return mode_label, conf
 
 
-def rep_counter_logic(buffer, last_down_exercise, reps):
-    """
-    Count reps when transitioning down -> up for same exercise.
-    e.g. situp_down -> situp_up = 1 rep. Avoid double-counting.
-    """
-    if len(buffer) < 2:
-        return last_down_exercise, reps
-    recent = list(buffer)[-8:]
-    down_states = [s for s in recent if s.endswith("_down") and s != "Belirsiz"]
-    up_states = [s for s in recent if s.endswith("_up") and s != "Belirsiz"]
-
-    if down_states:
-        down_ex = down_states[-1].replace("_down", "")
-        last_down_exercise = down_ex
-    if up_states:
-        up_ex = up_states[-1].replace("_up", "")
-        if last_down_exercise == up_ex:
-            reps += 1
-            last_down_exercise = None
-
-    return last_down_exercise, reps
-
 
 def main():
     print("Loading model and metadata...")
@@ -247,8 +224,6 @@ def main():
         sys.exit(1)
 
     buffer = deque(maxlen=BUFFER_SIZE)
-    last_down_exercise = None
-    reps = 0
 
     print("Camera started. Press 'q' to quit.")
     try:
@@ -282,15 +257,14 @@ def main():
                         label, conf = predict_with_smoothing(
                             model, encoder, scaler, categories, model_type, X, buffer
                         )
-                        last_down_exercise, reps = rep_counter_logic(buffer, last_down_exercise, reps)
-                        draw_overlay_panel(frame, label, conf, reps)
+                        draw_overlay_panel(frame, label, conf)
                 except Exception as e:
                     cv2.putText(
                         frame, f"Error: {e}",
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1
                     )
             else:
-                draw_overlay_panel(frame, "Belirsiz", 0.0, reps)
+                draw_overlay_panel(frame, "Belirsiz", 0.0)
                 h, w = frame.shape[:2]
                 cv2.putText(
                     frame, "Tam profilde durun, iyi aydinlatilmis ortam",

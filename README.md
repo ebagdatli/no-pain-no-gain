@@ -59,10 +59,18 @@ venv\Scripts\python -m streamlit run app/streamlit_app.py
 # veya: run_streamlit.bat (Windows)
 ```
 
-Camera demo (real-time pose detection, rep counter, skeleton overlay):
+Camera demo (real-time pose detection, skeleton overlay):
 
 ```bash
 cd ExercisePrediction && venv\Scripts\python -m src.camera_demo
 # Or from repo root: python -m ExercisePrediction.src.camera_demo
 # Press 'q' to quit. Requires trained model (metadata.json, scaler.pkl, etc.)
 ```
+
+## Roadmap (v2)
+
+Asagidaki ozellikler v2 surumunde eklenecektir:
+
+- **Tekrar Sayaci** - Egzersiz tekrarlarinin otomatik sayimi (down → up gecis algilama ile). Mevcut model pozisyonlari (orn. `pushups_down`, `pushups_up`) zaten taniyor; v2'de bu gecisler guvenilir sekilde izlenip tekrar olarak sayilacak.
+- **Kalori Hesaplama** - Yapilan egzersiz turune ve tekrar sayisina bagli olarak tahmini kalori yakimi hesaplanacak. Her egzersiz icin MET (Metabolic Equivalent of Task) degerleri kullanilarak kullaniciya anlik kalori bilgisi sunulacak.
+- **Antrenman Ozeti** - Seans sonunda toplam tekrar, sure ve yakilan kalori bilgisini iceren bir ozet ekrani.
