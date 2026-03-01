@@ -1,7 +1,9 @@
 """
 Streamlit app for exercise pose prediction.
-Upload a CSV with pose landmark columns (same format as train.csv) to get predictions.
+- CSV Upload: Predict poses from uploaded CSV
+- Camera Demo: Launch real-time webcam pose detection
 """
+import subprocess
 import sys
 from pathlib import Path
 
@@ -68,47 +70,63 @@ def predict(model, encoder, scaler, categories, model_type, X: np.ndarray):
 
 def main():
     st.title("Exercise Pose Prediction")
-    st.write(
-        "Upload a CSV with pose landmark columns (pose_id, pose optional; "
-        "required: 33 MediaPipe landmarks as x/y/z columns)."
-    )
+    tab1, tab2 = st.tabs(["CSV Upload", "Camera Demo"])
 
     model, encoder, scaler, categories, model_type = load_model_and_artifacts()
     if model is None:
+        st.error("Models not found. Train first: python run_competition.py ExercisePrediction")
         return
 
-    st.subheader("Upload CSV")
-    uploaded = st.file_uploader("Choose a CSV file", type=["csv"])
-    if uploaded is None:
-        return
-
-    try:
-        df = pd.read_csv(uploaded)
-    except Exception as e:
-        st.error(f"Failed to load CSV: {e}")
-        return
-
-    # Drop pose_id, pose if present; keep feature columns
-    feature_cols = [c for c in df.columns if c not in ("pose_id", "pose")]
-    if len(feature_cols) == 0:
-        st.error("No feature columns found. Expected landmark columns (x_nose, y_nose, ...).")
-        return
-
-    X = df[feature_cols].values
-    if X.shape[1] != scaler.n_features_in_:
-        st.error(
-            f"Expected {scaler.n_features_in_} features, got {X.shape[1]}. "
-            "Ensure CSV has same columns as train.csv (33 landmarks × 3)."
+    with tab2:
+        st.subheader("Canli Kamera Demo")
+        st.write(
+            "Kamera penceresini acarak anlik hareket tespiti ve tekrar sayimi yapilir. "
+            "Tam vucut gorunumunde, iyi aydinlatilmis ortamda calisir. Cikmak icin 'q' tusuna basin."
         )
-        return
+        if st.button("Kamerayi Baslat", type="primary"):
+            venv_python = ROOT / "venv" / ("Scripts" if sys.platform == "win32" else "bin") / ("python.exe" if sys.platform == "win32" else "python")
+            python_exe = str(venv_python) if venv_python.exists() else sys.executable
+            proc = subprocess.Popen(
+                [python_exe, "-m", "src.camera_demo"],
+                cwd=str(ROOT),
+                creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
+            )
+            st.success("Kamera penceresi acildi. Pencereyi goruntulemek icin gorev cubuguna bakin.")
+            st.info("Pencereyi kapatmak veya 'q' tusuna basmak icin once kamera penceresine tiklayin.")
 
-    if st.button("Predict"):
-        preds = predict(model, encoder, scaler, categories, model_type, X)
-        df_result = df.copy()
-        df_result["predicted_pose"] = preds
-        st.subheader("Predictions")
-        st.dataframe(df_result)
-        st.write("Classes:", ", ".join(categories))
+    with tab1:
+        st.subheader("Upload CSV")
+        uploaded = st.file_uploader("Choose a CSV file", type=["csv"])
+        if uploaded is None:
+            st.stop()
+
+        try:
+            df = pd.read_csv(uploaded)
+        except Exception as e:
+            st.error(f"Failed to load CSV: {e}")
+            st.stop()
+
+        # Drop pose_id, pose if present; keep feature columns
+        feature_cols = [c for c in df.columns if c not in ("pose_id", "pose")]
+        if len(feature_cols) == 0:
+            st.error("No feature columns found. Expected landmark columns (x_nose, y_nose, ...).")
+            st.stop()
+
+        X = df[feature_cols].values
+        if X.shape[1] != scaler.n_features_in_:
+            st.error(
+                f"Expected {scaler.n_features_in_} features, got {X.shape[1]}. "
+                "Ensure CSV has same columns as train.csv (33 landmarks × 3)."
+            )
+            st.stop()
+
+        if st.button("Predict"):
+            preds = predict(model, encoder, scaler, categories, model_type, X)
+            df_result = df.copy()
+            df_result["predicted_pose"] = preds
+            st.subheader("Predictions")
+            st.dataframe(df_result)
+            st.write("Classes:", ", ".join(categories))
 
 
 if __name__ == "__main__":

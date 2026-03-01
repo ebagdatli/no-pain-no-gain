@@ -32,6 +32,18 @@ ExercisePrediction/
 └── requirements.txt
 ```
 
+## Setup
+
+```bash
+cd ExercisePrediction
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+venv\Scripts\pip install ipykernel
+venv\Scripts\python -m ipykernel install --user --name=exercise-prediction --display-name="Python (ExercisePrediction)"
+```
+
+For Jupyter/notebook: select kernel **"Python (ExercisePrediction)"** so xgboost and other deps are found.
+
 ## Run
 
 ```bash
@@ -39,8 +51,18 @@ ExercisePrediction/
 python run_competition.py ExercisePrediction
 ```
 
-Streamlit (upload CSV with landmark rows to predict):
+Streamlit (upload CSV with landmark rows to predict). **ExercisePrediction venv kullanin** (xgboost vb. bu venv'de):
 
 ```bash
-streamlit run ExercisePrediction/app/streamlit_app.py
+cd ExercisePrediction
+venv\Scripts\python -m streamlit run app/streamlit_app.py
+# veya: run_streamlit.bat (Windows)
+```
+
+Camera demo (real-time pose detection, rep counter, skeleton overlay):
+
+```bash
+cd ExercisePrediction && venv\Scripts\python -m src.camera_demo
+# Or from repo root: python -m ExercisePrediction.src.camera_demo
+# Press 'q' to quit. Requires trained model (metadata.json, scaler.pkl, etc.)
 ```
