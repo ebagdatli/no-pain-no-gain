@@ -35,6 +35,15 @@ BUFFER_SIZE = 12
 CONFIDENCE_THRESHOLD = 0.65
 SCALE_XY = 100.0
 SCALE_Z = 200.0
+FRAME_SKIP = 2
+REP_DEBOUNCE = 3
+
+BODY_LANDMARK_INDICES = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
+BODY_CONNECTIONS = [
+    (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
+    (11, 23), (12, 24), (23, 24),
+    (23, 25), (25, 27), (24, 26), (26, 28),
+]
 
 MP_INDEX_TO_NAME = [
     "nose", "left_eye_inner", "left_eye", "left_eye_outer",
@@ -99,7 +108,13 @@ CUSTOM_CSS = """\
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 #MainMenu, footer, header {visibility: hidden;}
-.block-container {padding-top: 0 !important; max-width: 1200px; margin: 0 auto;}
+.block-container {
+    padding-top: 0 !important;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
 
 .stApp {
     background: linear-gradient(180deg, #080810 0%, #0d0d1a 40%, #080810 100%);
@@ -107,10 +122,23 @@ CUSTOM_CSS = """\
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Streamlit column gap normalization */
+[data-testid="stHorizontalBlock"] {
+    gap: 1rem !important;
+    align-items: stretch !important;
+}
+[data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stColumn"] > div {
+    flex: 1;
+}
+
 /* Hero */
 .hero {
     text-align: center;
-    padding: 4.5rem 1rem 2.5rem;
+    padding: 4rem 1rem 2rem;
     position: relative;
     overflow: hidden;
 }
@@ -156,9 +184,9 @@ CUSTOM_CSS = """\
     background-clip: text;
 }
 .hero-sub {
-    font-size: 1.12rem;
+    font-size: 1.08rem;
     color: #7a7a95;
-    max-width: 580px;
+    max-width: 540px;
     margin: 0 auto;
     line-height: 1.7;
     position: relative;
@@ -166,17 +194,17 @@ CUSTOM_CSS = """\
 
 /* Section Titles */
 .sec-title {
-    font-size: 1.85rem;
+    font-size: 1.75rem;
     font-weight: 700;
     text-align: center;
-    margin: 3.5rem 0 0.4rem;
+    margin: 2.5rem 0 0.4rem;
     color: #fff;
 }
 .sec-sub {
     text-align: center;
     color: #7a7a95;
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
+    font-size: 0.92rem;
+    margin-bottom: 1.8rem;
 }
 
 /* Glass Card */
@@ -186,11 +214,12 @@ CUSTOM_CSS = """\
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255,255,255,0.055);
     border-radius: 16px;
-    padding: 1.8rem 1.5rem;
+    padding: 1.6rem 1.3rem;
     transition: all 0.35s cubic-bezier(.4,0,.2,1);
     position: relative;
     overflow: hidden;
     height: 100%;
+    box-sizing: border-box;
 }
 .g-card:hover {
     border-color: rgba(0,212,170,0.18);
@@ -203,16 +232,16 @@ CUSTOM_CSS = """\
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 46px; height: 46px;
+    width: 44px; height: 44px;
     border-radius: 12px;
     background: linear-gradient(135deg, #00d4aa, #7c3aed);
     color: #fff;
     font-weight: 700;
-    font-size: 1.15rem;
-    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
 }
-.step-t { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 0.45rem; }
-.step-d { font-size: 0.88rem; color: #7a7a95; line-height: 1.6; }
+.step-t { font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 0.4rem; }
+.step-d { font-size: 0.85rem; color: #7a7a95; line-height: 1.6; }
 
 /* Exercise Cards */
 .accent-top {
@@ -224,19 +253,19 @@ CUSTOM_CSS = """\
     transition: opacity 0.3s;
 }
 .g-card:hover .accent-top { opacity: 1; }
-.ex-icon  { font-size: 2.5rem; margin-bottom: 0.7rem; display: block; }
-.ex-name  { font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 0.15rem; }
-.ex-en    { font-size: 0.78rem; color: #5a5a7a; margin-bottom: 0.5rem; }
-.ex-desc  { font-size: 0.82rem; color: #7a7a95; line-height: 1.5; }
+.ex-icon  { font-size: 2.2rem; margin-bottom: 0.6rem; display: block; }
+.ex-name  { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 0.1rem; }
+.ex-en    { font-size: 0.75rem; color: #5a5a7a; margin-bottom: 0.4rem; }
+.ex-desc  { font-size: 0.8rem; color: #7a7a95; line-height: 1.5; }
 
 /* CTA Section */
 .cta-box {
     text-align: center;
-    padding: 3rem 2rem 1.5rem;
+    padding: 2.5rem 2rem 1.2rem;
     background: linear-gradient(135deg, rgba(0,212,170,0.04), rgba(124,58,237,0.04));
     border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 24px;
-    margin: 2.5rem 0 0;
+    border-radius: 20px;
+    margin: 2rem 0 0;
     position: relative;
     overflow: hidden;
 }
@@ -244,17 +273,17 @@ CUSTOM_CSS = """\
     content: '';
     position: absolute;
     inset: -1px;
-    border-radius: 24px;
+    border-radius: 20px;
     background: linear-gradient(135deg, rgba(0,212,170,0.12), transparent 40%, rgba(124,58,237,0.12));
     z-index: 0;
     pointer-events: none;
 }
-.cta-t { font-size: 1.75rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; position: relative; }
-.cta-d { color: #7a7a95; margin-bottom: 0.2rem; font-size: 0.95rem; position: relative; }
+.cta-t { font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; position: relative; }
+.cta-d { color: #7a7a95; margin-bottom: 0.2rem; font-size: 0.9rem; position: relative; }
 
 /* Metric Card */
 .m-val {
-    font-size: 2.1rem;
+    font-size: 2rem;
     font-weight: 700;
     background: linear-gradient(135deg, #00d4aa, #7c3aed);
     -webkit-background-clip: text;
@@ -290,11 +319,11 @@ div.stButton > button[data-testid="stBaseButton-primary"]:hover {
     background: rgba(59,130,246,0.06);
     border: 1px solid rgba(59,130,246,0.15);
     border-radius: 14px;
-    padding: 1.1rem 1.4rem;
+    padding: 1rem 1.4rem;
     color: #8ab4f8;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     line-height: 1.6;
-    margin: 1rem 0;
+    margin: 0.8rem 0;
 }
 .tip-box strong { color: #a8ccff; }
 
@@ -302,7 +331,7 @@ div.stButton > button[data-testid="stBaseButton-primary"]:hover {
 .sep {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-    margin: 2.5rem 0;
+    margin: 2rem 0;
 }
 
 /* Footer */
@@ -311,7 +340,7 @@ div.stButton > button[data-testid="stBaseButton-primary"]:hover {
     padding: 2rem 0 1.5rem;
     color: #444460;
     font-size: 0.82rem;
-    margin-top: 3rem;
+    margin-top: 2.5rem;
     border-top: 1px solid rgba(255,255,255,0.04);
 }
 .foot a { color: #00d4aa; text-decoration: none; }
@@ -322,8 +351,12 @@ div.stButton > button[data-testid="stBaseButton-primary"]:hover {
 ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a52; }
 
-/* WebRTC container styling */
-.stVideo > div { border-radius: 16px; overflow: hidden; }
+/* WebRTC component wrapper */
+iframe[title*="webrtc"] {
+    border: 1px solid rgba(255,255,255,0.055) !important;
+    border-radius: 16px !important;
+    background: rgba(18,18,30,0.65) !important;
+}
 
 /* Onboarding Card */
 .onboard-card {
@@ -413,9 +446,10 @@ def predict_single(ml_model, encoder, scaler, model_type, X, buffer):
     return mode_label, conf
 
 
-def draw_overlay_panel(frame, label, conf):
+def draw_overlay_panel(frame, label, conf, reps=None):
     h, w = frame.shape[:2]
-    panel_h = 90
+    has_reps = reps is not None and reps > 0
+    panel_h = 120 if has_reps else 90
     panel_w = min(400, w - 20)
     x1, y1 = 10, 10
     x2, y2 = x1 + panel_w, y1 + panel_h
@@ -433,6 +467,10 @@ def draw_overlay_panel(frame, label, conf):
                 font, 0.9, color, 2)
     cv2.putText(frame, f"Guven: %{conf * 100:.0f}", (x1 + 12, y1 + 72),
                 font, 0.7, (200, 200, 200), 2)
+
+    if has_reps:
+        cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 106),
+                    font, 0.8, (0, 212, 170), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -496,14 +534,82 @@ _buffer_lock = Lock()
 _prediction_buffer: deque = deque(maxlen=BUFFER_SIZE)
 
 
+def _draw_body_skeleton(img, pose_landmarks):
+    """Draw only the 14 essential body landmarks and connections (skip face/hands/feet)."""
+    h, w = img.shape[:2]
+    points = {}
+    for idx in BODY_LANDMARK_INDICES:
+        lm = pose_landmarks[idx]
+        px, py = int(lm.x * w), int(lm.y * h)
+        points[idx] = (px, py)
+        cv2.circle(img, (px, py), 5, (0, 212, 170), -1)
+        cv2.circle(img, (px, py), 7, (0, 212, 170), 1)
+
+    for a, b in BODY_CONNECTIONS:
+        if a in points and b in points:
+            cv2.line(img, points[a], points[b], (0, 255, 0), 2)
+
+
 def make_video_frame_callback(ml_model, encoder, scaler, model_type,
                                feature_columns, pose_landmarker):
     """Create a closure that captures loaded artifacts for the WebRTC callback."""
-    from mediapipe.tasks.python.vision import drawing_utils, drawing_styles
+    frame_counter = [0]
+    cached_label = ["Belirsiz"]
+    cached_conf = [0.0]
+
+    rep_state = {
+        "phase": "idle",
+        "reps": 0,
+        "debounce_count": 0,
+        "pending_phase": None,
+    }
+
+    def _update_rep_counter(label):
+        """State machine: idle -> down -> up (rep++) -> down -> up (rep++) ..."""
+        phase = rep_state["phase"]
+
+        if label == "pushups_down":
+            target = "down"
+        elif label == "pushups_up":
+            target = "up"
+        else:
+            rep_state["debounce_count"] = 0
+            rep_state["pending_phase"] = None
+            return
+
+        if phase == "idle" and target == "down":
+            _try_transition("down")
+        elif phase == "down" and target == "up":
+            if _try_transition("up"):
+                rep_state["reps"] += 1
+        elif phase == "up" and target == "down":
+            _try_transition("down")
+
+    def _try_transition(target):
+        if rep_state["pending_phase"] == target:
+            rep_state["debounce_count"] += 1
+        else:
+            rep_state["pending_phase"] = target
+            rep_state["debounce_count"] = 1
+
+        if rep_state["debounce_count"] >= REP_DEBOUNCE:
+            rep_state["phase"] = target
+            rep_state["pending_phase"] = None
+            rep_state["debounce_count"] = 0
+            return True
+        return False
 
     def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
         img = cv2.flip(img, 1)
+
+        frame_counter[0] += 1
+        should_process = (frame_counter[0] % FRAME_SKIP == 0)
+
+        if not should_process:
+            draw_overlay_panel(img, cached_label[0], cached_conf[0],
+                               reps=rep_state["reps"])
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
 
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
@@ -511,23 +617,12 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
         try:
             detection_result = pose_landmarker.detect(mp_image)
         except Exception:
-            draw_overlay_panel(img, "Belirsiz", 0.0)
+            draw_overlay_panel(img, "Belirsiz", 0.0, reps=rep_state["reps"])
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
         if detection_result.pose_landmarks:
             pose_landmarks = detection_result.pose_landmarks[0]
-
-            frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            drawing_utils.draw_landmarks(
-                image=frame_rgb,
-                landmark_list=pose_landmarks,
-                connections=vision.PoseLandmarksConnections.POSE_LANDMARKS,
-                landmark_drawing_spec=drawing_styles.get_default_pose_landmarks_style(),
-                connection_drawing_spec=drawing_utils.DrawingSpec(
-                    color=(0, 255, 0), thickness=2
-                ),
-            )
-            img = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            _draw_body_skeleton(img, pose_landmarks)
 
             try:
                 X = landmarks_to_vector(pose_landmarks, feature_columns)
@@ -537,12 +632,18 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
                             ml_model, encoder, scaler, model_type,
                             X, _prediction_buffer,
                         )
-                    draw_overlay_panel(img, label, conf)
+                    cached_label[0] = label
+                    cached_conf[0] = conf
+                    _update_rep_counter(label)
+                    draw_overlay_panel(img, label, conf,
+                                       reps=rep_state["reps"])
             except Exception as e:
                 cv2.putText(img, f"Error: {e}", (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
         else:
-            draw_overlay_panel(img, "Belirsiz", 0.0)
+            cached_label[0] = "Belirsiz"
+            cached_conf[0] = 0.0
+            draw_overlay_panel(img, "Belirsiz", 0.0, reps=rep_state["reps"])
             h, w = img.shape[:2]
             cv2.putText(img, "Tam vucut gorunumunde durun",
                         (10, h - 25), cv2.FONT_HERSHEY_SIMPLEX,
@@ -665,7 +766,7 @@ def render_camera_section(ml_model, encoder, scaler, model_type,
         <div class="cta-box">
             <div class="cta-t">Antrenmanina Basla</div>
             <div class="cta-d">
-                START butonuna tiklayarak kameranizi acin ve egzersize baslayin
+                Kameranizi acarak yapay zeka destekli egzersiz takibine baslayin
             </div>
         </div>
         """,
@@ -687,13 +788,72 @@ def render_camera_section(ml_model, encoder, scaler, model_type,
         ml_model, encoder, scaler, model_type, feature_columns, pose_landmarker,
     )
 
-    webrtc_streamer(
+    webrtc_ctx = webrtc_streamer(
         key="exercise-detection",
         mode=WebRtcMode.SENDRECV,
         video_frame_callback=callback,
-        media_stream_constraints={"video": True, "audio": False},
+        media_stream_constraints={
+            "video": {"width": {"ideal": 640}, "height": {"ideal": 480}},
+            "audio": False,
+        },
         async_processing=True,
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        translations={
+            "start": "Kamerayi Baslat",
+            "stop": "Kamerayi Durdur",
+            "select_device": "Cihaz Sec",
+        },
+    )
+
+    st.markdown(
+        """
+        <script>
+        const observer = new MutationObserver(() => {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (!doc || doc.getElementById('custom-webrtc-style')) return;
+                    const style = doc.createElement('style');
+                    style.id = 'custom-webrtc-style';
+                    style.textContent = `
+                        button {
+                            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%) !important;
+                            border: none !important;
+                            border-radius: 12px !important;
+                            padding: 12px 32px !important;
+                            font-size: 1rem !important;
+                            font-weight: 600 !important;
+                            color: #080810 !important;
+                            cursor: pointer !important;
+                            letter-spacing: 0.5px !important;
+                            min-height: 48px !important;
+                            transition: all 0.3s ease !important;
+                        }
+                        button:hover {
+                            box-shadow: 0 6px 24px rgba(0,212,170,0.35) !important;
+                            transform: translateY(-1px) !important;
+                        }
+                        select {
+                            background: rgba(18,18,30,0.9) !important;
+                            border: 1px solid rgba(255,255,255,0.12) !important;
+                            border-radius: 10px !important;
+                            color: #e0e0e8 !important;
+                            padding: 8px 16px !important;
+                            font-size: 0.85rem !important;
+                        }
+                        video {
+                            border-radius: 12px !important;
+                        }
+                    `;
+                    doc.head.appendChild(style);
+                } catch(e) {}
+            });
+        });
+        observer.observe(document.body, {childList: true, subtree: true});
+        </script>
+        """,
+        unsafe_allow_html=True,
     )
 
 

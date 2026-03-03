@@ -27,9 +27,16 @@ POSE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarke
 
 BUFFER_SIZE = 12
 CONFIDENCE_THRESHOLD = 0.65
-# MediaPipe returns 0-1; training data uses ~-50 to 50. Scale to match.
-SCALE_XY = 100.0  # (x - 0.5) * SCALE_XY
-SCALE_Z = 200.0   # z * SCALE_Z (depth)
+SCALE_XY = 100.0
+SCALE_Z = 200.0
+REP_DEBOUNCE = 3
+
+BODY_LANDMARK_INDICES = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
+BODY_CONNECTIONS = [
+    (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
+    (11, 23), (12, 24), (23, 24),
+    (23, 25), (25, 27), (24, 26), (26, 28),
+]
 
 # MediaPipe landmark index to column name (for metadata alignment)
 # Order matches MediaPipe PoseLandmark 0-32
@@ -71,13 +78,27 @@ def label_to_turkish(label):
     return POSE_TO_TURKISH.get(label, label)
 
 
-def draw_overlay_panel(frame, label, conf):
-    """
-    Ekranda okunakli bir bilgi paneli cizer.
-    Yari saydam arka plan, buyuk font, Turkce etiket.
-    """
+def draw_body_skeleton(img, pose_landmarks):
+    """Draw only the 14 essential body landmarks and connections (skip face/hands/feet)."""
+    h, w = img.shape[:2]
+    points = {}
+    for idx in BODY_LANDMARK_INDICES:
+        lm = pose_landmarks[idx]
+        px, py = int(lm.x * w), int(lm.y * h)
+        points[idx] = (px, py)
+        cv2.circle(img, (px, py), 5, (0, 212, 170), -1)
+        cv2.circle(img, (px, py), 7, (0, 212, 170), 1)
+
+    for a, b in BODY_CONNECTIONS:
+        if a in points and b in points:
+            cv2.line(img, points[a], points[b], (0, 255, 0), 2)
+
+
+def draw_overlay_panel(frame, label, conf, reps=None):
+    """Ekranda okunakli bir bilgi paneli cizer."""
     h, w = frame.shape[:2]
-    panel_h = 90
+    has_reps = reps is not None and reps > 0
+    panel_h = 120 if has_reps else 90
     panel_w = min(400, w - 20)
     x1, y1 = 10, 10
     x2, y2 = x1 + panel_w, y1 + panel_h
@@ -89,12 +110,13 @@ def draw_overlay_panel(frame, label, conf):
 
     turkce = label_to_turkish(label)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.9
-    thickness = 2
     color = (0, 255, 150) if label != "Belirsiz" else (100, 100, 100)
 
-    cv2.putText(frame, f"Hareket: {turkce}", (x1 + 12, y1 + 38), font, font_scale, color, thickness)
-    cv2.putText(frame, f"Guven: %{conf * 100:.0f}", (x1 + 12, y1 + 72), font, 0.7, (200, 200, 200), thickness)
+    cv2.putText(frame, f"Hareket: {turkce}", (x1 + 12, y1 + 38), font, 0.9, color, 2)
+    cv2.putText(frame, f"Guven: %{conf * 100:.0f}", (x1 + 12, y1 + 72), font, 0.7, (200, 200, 200), 2)
+
+    if has_reps:
+        cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 106), font, 0.8, (0, 212, 170), 2)
 
 
 def ensure_pose_model():
@@ -205,6 +227,48 @@ def predict_with_smoothing(model, encoder, scaler, categories, model_type, X, bu
 
 
 
+class RepCounter:
+    """State machine for counting exercise repetitions (down -> up = 1 rep)."""
+
+    def __init__(self):
+        self.phase = "idle"
+        self.reps = 0
+        self.debounce_count = 0
+        self.pending_phase = None
+
+    def update(self, label):
+        if label == "pushups_down":
+            target = "down"
+        elif label == "pushups_up":
+            target = "up"
+        else:
+            self.debounce_count = 0
+            self.pending_phase = None
+            return
+
+        if self.phase == "idle" and target == "down":
+            self._try_transition("down")
+        elif self.phase == "down" and target == "up":
+            if self._try_transition("up"):
+                self.reps += 1
+        elif self.phase == "up" and target == "down":
+            self._try_transition("down")
+
+    def _try_transition(self, target):
+        if self.pending_phase == target:
+            self.debounce_count += 1
+        else:
+            self.pending_phase = target
+            self.debounce_count = 1
+
+        if self.debounce_count >= REP_DEBOUNCE:
+            self.phase = target
+            self.pending_phase = None
+            self.debounce_count = 0
+            return True
+        return False
+
+
 def main():
     print("Loading model and metadata...")
     model, encoder, scaler, categories, model_type, feature_columns = load_metadata()
@@ -224,6 +288,7 @@ def main():
         sys.exit(1)
 
     buffer = deque(maxlen=BUFFER_SIZE)
+    rep_counter = RepCounter()
 
     print("Camera started. Press 'q' to quit.")
     try:
@@ -240,31 +305,24 @@ def main():
 
             if detection_result.pose_landmarks:
                 pose_landmarks = detection_result.pose_landmarks[0]
-                # Draw skeleton (drawing_utils expects RGB)
-                from mediapipe.tasks.python.vision import drawing_utils, drawing_styles
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                drawing_utils.draw_landmarks(
-                    image=frame_rgb,
-                    landmark_list=pose_landmarks,
-                    connections=vision.PoseLandmarksConnections.POSE_LANDMARKS,
-                    landmark_drawing_spec=drawing_styles.get_default_pose_landmarks_style(),
-                    connection_drawing_spec=drawing_utils.DrawingSpec(color=(0, 255, 0), thickness=2),
-                )
-                frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+                draw_body_skeleton(frame, pose_landmarks)
                 try:
                     X = landmarks_to_vector(pose_landmarks, feature_columns)
                     if X.shape[1] == scaler.n_features_in_:
                         label, conf = predict_with_smoothing(
                             model, encoder, scaler, categories, model_type, X, buffer
                         )
-                        draw_overlay_panel(frame, label, conf)
+                        rep_counter.update(label)
+                        draw_overlay_panel(frame, label, conf,
+                                           reps=rep_counter.reps)
                 except Exception as e:
                     cv2.putText(
                         frame, f"Error: {e}",
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1
                     )
             else:
-                draw_overlay_panel(frame, "Belirsiz", 0.0)
+                draw_overlay_panel(frame, "Belirsiz", 0.0,
+                                   reps=rep_counter.reps)
                 h, w = frame.shape[:2]
                 cv2.putText(
                     frame, "Tam profilde durun, iyi aydinlatilmis ortam",
