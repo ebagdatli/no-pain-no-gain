@@ -5,6 +5,7 @@ Includes smoothing and skeleton overlay.
 """
 import json
 import sys
+import time
 import urllib.request
 from collections import Counter, deque
 from pathlib import Path
@@ -30,6 +31,23 @@ CONFIDENCE_THRESHOLD = 0.65
 SCALE_XY = 100.0
 SCALE_Z = 200.0
 REP_DEBOUNCE = 3
+REP_DISPLAY_FRAMES = 20
+
+KCAL_PER_REP = {
+    "pushups": 0.4,
+    "situp": 0.3,
+    "squats": 0.35,
+    "pullups": 0.5,
+    "jumping_jacks": 0.2,
+}
+
+EXERCISE_NAMES = {
+    "pushups": "Sinav",
+    "situp": "Mekik",
+    "squats": "Squat",
+    "pullups": "Barfiks",
+    "jumping_jacks": "Ziplama",
+}
 
 BODY_LANDMARK_INDICES = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 BODY_CONNECTIONS = [
@@ -117,6 +135,25 @@ def draw_overlay_panel(frame, label, conf, reps=None):
 
     if has_reps:
         cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 106), font, 0.8, (0, 212, 170), 2)
+
+
+def draw_center_counter(frame, reps, frames_since_rep):
+    """Draw a large fading rep number in the center of the frame."""
+    if frames_since_rep >= REP_DISPLAY_FRAMES:
+        return
+    alpha = 1.0 - (frames_since_rep / REP_DISPLAY_FRAMES)
+    h, w = frame.shape[:2]
+    text = str(reps)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 4.0
+    thickness = 8
+    (tw, th), _ = cv2.getTextSize(text, font, scale, thickness)
+    tx = (w - tw) // 2
+    ty = (h + th) // 2
+
+    overlay = frame.copy()
+    cv2.putText(overlay, text, (tx, ty), font, scale, (200, 200, 200), thickness)
+    cv2.addWeighted(overlay, alpha * 0.6, frame, 1.0 - alpha * 0.6, 0, frame)
 
 
 def ensure_pose_model():
@@ -235,11 +272,21 @@ class RepCounter:
         self.reps = 0
         self.debounce_count = 0
         self.pending_phase = None
+        self.frames_since_rep = REP_DISPLAY_FRAMES
+        self.exercise_reps = {}
+        self.start_time = None
 
     def update(self, label):
-        if label == "pushups_down":
+        self.frames_since_rep += 1
+
+        if self.start_time is None and label != "Belirsiz":
+            self.start_time = time.time()
+
+        exercise = label.rsplit("_", 1)[0] if "_" in label else None
+
+        if label.endswith("_down"):
             target = "down"
-        elif label == "pushups_up":
+        elif label.endswith("_up"):
             target = "up"
         else:
             self.debounce_count = 0
@@ -251,6 +298,11 @@ class RepCounter:
         elif self.phase == "down" and target == "up":
             if self._try_transition("up"):
                 self.reps += 1
+                self.frames_since_rep = 0
+                if exercise:
+                    self.exercise_reps[exercise] = (
+                        self.exercise_reps.get(exercise, 0) + 1
+                    )
         elif self.phase == "up" and target == "down":
             self._try_transition("down")
 
@@ -267,6 +319,21 @@ class RepCounter:
             self.debounce_count = 0
             return True
         return False
+
+    def summary(self):
+        elapsed = time.time() - self.start_time if self.start_time else 0
+        mins, secs = int(elapsed) // 60, int(elapsed) % 60
+        total_kcal = sum(
+            count * KCAL_PER_REP.get(ex, 0.3)
+            for ex, count in self.exercise_reps.items()
+        )
+        return {
+            "elapsed": elapsed,
+            "mins": mins,
+            "secs": secs,
+            "exercise_reps": self.exercise_reps,
+            "total_kcal": total_kcal,
+        }
 
 
 def main():
@@ -321,6 +388,7 @@ def main():
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1
                     )
             else:
+                rep_counter.frames_since_rep += 1
                 draw_overlay_panel(frame, "Belirsiz", 0.0,
                                    reps=rep_counter.reps)
                 h, w = frame.shape[:2]
@@ -329,6 +397,9 @@ def main():
                     (10, h - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 165, 255), 1
                 )
 
+            draw_center_counter(frame, rep_counter.reps,
+                                rep_counter.frames_since_rep)
+
             cv2.imshow("Exercise Pose Detection", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
@@ -336,6 +407,18 @@ def main():
         pose_landmarker.close()
         cap.release()
         cv2.destroyAllWindows()
+
+        if rep_counter.reps > 0:
+            s = rep_counter.summary()
+            print("\n" + "=" * 40)
+            print("  ANTRENMAN OZETI")
+            print("=" * 40)
+            print(f"  Sure: {s['mins']} dk {s['secs']} sn")
+            for ex, count in s["exercise_reps"].items():
+                name = EXERCISE_NAMES.get(ex, ex)
+                print(f"  {name}: {count} tekrar")
+            print(f"  Tahmini Kalori: {s['total_kcal']:.1f} kcal")
+            print("=" * 40)
 
 
 if __name__ == "__main__":
