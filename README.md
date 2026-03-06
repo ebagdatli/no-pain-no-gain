@@ -78,11 +78,30 @@ venv\Scripts\python -m streamlit run app/streamlit_app.py
 
 ## Training
 
-Download [Multi-Class Exercise Poses](https://www.kaggle.com/datasets/dp5995/gym-exercise-mediapipe-33-landmarks) dataset from Kaggle and place `train.csv` in `data/raw/`. Then run the training notebook or:
+Download [Multi-Class Exercise Poses](https://www.kaggle.com/datasets/dp5995/gym-exercise-mediapipe-33-landmarks) dataset from Kaggle and place `train.csv` in `data/raw/`. Then run:
 
 ```bash
-venv\Scripts\python -m src.train
+venv\Scripts\python run_train.py --feature-mode upper_body_angles
 ```
+
+**Önerilen:** `upper_body_angles` modu, kamera dikey (yukarıdan) konumlandırıldığında **şınav aşağı** pozisyonunun daha iyi tanınması için üst vücut (burun, omuz, dirsek, bilek) + dirsek açısı özelliklerini kullanır. Eski tam model için:
+
+```bash
+venv\Scripts\python run_train.py --feature-mode full
+```
+
+### Model Eksikse (models/ klasörü yok veya boş)
+
+Streamlit uygulamasını veya kamera demosunu çalıştırdığınızda `models/` klasörü yoksa veya içinde eğitilmiş model dosyaları (`meta.pkl`, `encoder.pkl`, `scaler.pkl`, `categories.pkl`, `final_model.pkl`) yoksa şu uyarıyı görürsünüz:
+
+> **Model Henüz Eğitilmedi**  
+> Uygulamayı kullanabilmek için önce modeli eğitmeniz gerekiyor. Aşağıdaki komutu çalıştırarak eğitim sürecini başlatın:
+>
+> `python -m src.train`
+>
+> Eğitim tamamlandıktan sonra bu sayfayı yenileyin.
+
+Bu durumda önce veri setini indirip `data/raw/train.csv` konumuna koyun, ardından yukarıdaki eğitim komutunu çalıştırın.
 
 ## Hugging Face Deployment
 
