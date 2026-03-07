@@ -592,8 +592,8 @@ def render_workout_launcher():
         unsafe_allow_html=True,
     )
 
-    _pad_l, col_center, _pad_r = st.columns([1, 2, 1])
-    with col_center:
+    col_cam, col_web = st.columns(2)
+    with col_cam:
         if st.button("Kamerayi Baslat", type="primary", use_container_width=True):
             venv_python = (
                 ROOT
@@ -617,6 +617,29 @@ def render_workout_launcher():
             except Exception as e:
                 st.error(f"Kamera baslatilamadi: {e}")
 
+    with col_web:
+        if st.button("Web AR Rehber", type="secondary", use_container_width=True):
+            venv_python = (
+                ROOT
+                / "venv"
+                / ("Scripts" if sys.platform == "win32" else "bin")
+                / ("python.exe" if sys.platform == "win32" else "python")
+            )
+            python_exe = str(venv_python) if venv_python.exists() else sys.executable
+            try:
+                subprocess.Popen(
+                    [python_exe, "-m", "web_ar_server"],
+                    cwd=str(ROOT),
+                    creationflags=(
+                        subprocess.CREATE_NEW_CONSOLE
+                        if sys.platform == "win32"
+                        else 0
+                    ),
+                )
+                st.info("Web AR Rehber tarayicida acildi. Siluete uygun pozisyona gecin.")
+            except Exception as e:
+                st.error(f"Web AR baslatilamadi: {e}")
+
     if st.session_state.camera_active:
         _p1, col_status, _p2 = st.columns([1, 2, 1])
         with col_status:
@@ -635,8 +658,7 @@ def render_workout_launcher():
                 """
                 <div class="tip-box" style="margin-top:0.8rem; text-align:center;">
                     <strong>Ipucu:</strong> Gorev cubugunda acilan kamera penceresine tiklayin.
-                    Cikmak icin <strong>Q</strong> tusuna basin. Iyi aydinlatilmis bir ortamda
-                    tam vucut gorunumunde durmaniz en iyi sonuclari verir.
+                    Cikmak icin <strong>Q</strong> tusuna basin.
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -672,7 +694,7 @@ def render_model_missing():
                     Asagidaki komutu calistirarak egitim surecini baslatin:
                 </p>
                 <p style="margin-top:1rem;">
-                    <code>python run_competition.py ExercisePrediction</code>
+                    <code>python -m src.train</code>
                 </p>
                 <p style="margin-top:1rem; font-size:0.85rem; color:#5a5a7a;">
                     Egitim tamamlandiktan sonra bu sayfayi yenileyin.
