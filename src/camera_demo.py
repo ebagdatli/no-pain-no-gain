@@ -31,6 +31,14 @@ SCALE_XY = 100.0
 SCALE_Z = 200.0
 REP_DEBOUNCE = 3
 
+EXERCISE_NAMES = {
+    "pushups": "Sinav",
+    "situp": "Mekik",
+    "squats": "Squat",
+    "pullups": "Barfiks",
+    "jumping_jacks": "Ziplama",
+}
+
 BODY_LANDMARK_INDICES = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 BODY_CONNECTIONS = [
     (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
@@ -119,6 +127,26 @@ def draw_overlay_panel(frame, label, conf, reps=None):
         cv2.putText(frame, f"Tekrar: {reps}", (x1 + 12, y1 + 106), font, 0.8, (0, 212, 170), 2)
 
 
+def draw_bounding_box(frame, pose_landmarks, is_good_form):
+    """Draw a dynamic bounding box around the user based on landmarks."""
+    h, w = frame.shape[:2]
+    x_coords = [lm.x * w for lm in pose_landmarks]
+    y_coords = [lm.y * h for lm in pose_landmarks]
+    
+    x_min, x_max = int(min(x_coords)), int(max(x_coords))
+    y_min, y_max = int(min(y_coords)), int(max(y_coords))
+    
+    # Add padding
+    padding = 30
+    x_min = max(0, x_min - padding)
+    y_min = max(0, y_min - padding)
+    x_max = min(w, x_max + padding)
+    y_max = min(h, y_max + padding)
+    
+    color = (0, 255, 0) if is_good_form else (0, 0, 255) # Green vs Red
+    cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 3, cv2.LINE_AA)
+
+
 def ensure_pose_model():
     """Download pose_landmarker model if not present."""
     if POSE_MODEL_PATH.exists():
@@ -179,6 +207,7 @@ def landmarks_to_vector(landmark_list, feature_columns):
     values = []
     for col in feature_columns:
         if not col.startswith(("x_", "y_", "z_")):
+            values.append(0.0)
             continue
         axis = col[0]
         name = col[2:].strip()
@@ -237,9 +266,9 @@ class RepCounter:
         self.pending_phase = None
 
     def update(self, label):
-        if label == "pushups_down":
+        if label.endswith("_down"):
             target = "down"
-        elif label == "pushups_up":
+        elif label.endswith("_up"):
             target = "up"
         else:
             self.debounce_count = 0
@@ -283,6 +312,8 @@ def main():
     pose_landmarker = vision.PoseLandmarker.create_from_options(options)
 
     cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     if not cap.isOpened():
         print("Could not open webcam.")
         sys.exit(1)
@@ -336,6 +367,13 @@ def main():
         pose_landmarker.close()
         cap.release()
         cv2.destroyAllWindows()
+
+        if rep_counter.reps > 0:
+            print("\n" + "=" * 40)
+            print("  ANTRENMAN OZETI")
+            print("=" * 40)
+            print(f"  Toplam Tekrar: {rep_counter.reps}")
+            print("=" * 40)
 
 
 if __name__ == "__main__":
