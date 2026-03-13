@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.so
+.venv/
+venv/
+env/
+
+# Data and models – download from Kaggle (see README)
+data/raw/*
+data/processed/*
+models/*
+!models/.gitkeep
+!hf_space/models/.gitkeep
+
+# IDE / OS
+.idea/
+.DS_Store
+*.xlsx
+*.ipynb_checkpoints/
+
+# Hugging Face Space clone (separate repo)
+ActiMetric-AI/

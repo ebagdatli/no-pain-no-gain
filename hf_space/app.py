@@ -4,6 +4,7 @@ Streamlit + WebRTC for in-browser real-time pose detection.
 """
 import json
 import logging
+import time
 import urllib.request
 from collections import Counter, deque
 from pathlib import Path
@@ -37,6 +38,15 @@ SCALE_XY = 100.0
 SCALE_Z = 200.0
 FRAME_SKIP = 2
 REP_DEBOUNCE = 3
+REP_DISPLAY_FRAMES = 20
+
+KCAL_PER_REP = {
+    "pushups": 0.4,
+    "situp": 0.3,
+    "squats": 0.35,
+    "pullups": 0.5,
+    "jumping_jacks": 0.2,
+}
 
 BODY_LANDMARK_INDICES = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 BODY_CONNECTIONS = [
@@ -473,6 +483,25 @@ def draw_overlay_panel(frame, label, conf, reps=None):
                     font, 0.8, (0, 212, 170), 2)
 
 
+def draw_center_counter(frame, reps, frames_since_rep):
+    """Draw a large fading rep number in the center of the frame."""
+    if frames_since_rep >= REP_DISPLAY_FRAMES:
+        return
+    alpha = 1.0 - (frames_since_rep / REP_DISPLAY_FRAMES)
+    h, w = frame.shape[:2]
+    text = str(reps)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 4.0
+    thickness = 8
+    (tw, th), _ = cv2.getTextSize(text, font, scale, thickness)
+    tx = (w - tw) // 2
+    ty = (h + th) // 2
+
+    overlay = frame.copy()
+    cv2.putText(overlay, text, (tx, ty), font, scale, (200, 200, 200), thickness)
+    cv2.addWeighted(overlay, alpha * 0.6, frame, 1.0 - alpha * 0.6, 0, frame)
+
+
 # ---------------------------------------------------------------------------
 # Thread-safe model & pose landmarker loader
 # ---------------------------------------------------------------------------
@@ -562,15 +591,23 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
         "reps": 0,
         "debounce_count": 0,
         "pending_phase": None,
+        "frames_since_rep": REP_DISPLAY_FRAMES,
+        "exercise_reps": {},
+        "start_time": None,
     }
 
     def _update_rep_counter(label):
         """State machine: idle -> down -> up (rep++) -> down -> up (rep++) ..."""
         phase = rep_state["phase"]
 
-        if label == "pushups_down":
+        if rep_state["start_time"] is None and label != "Belirsiz":
+            rep_state["start_time"] = time.time()
+
+        exercise = label.rsplit("_", 1)[0] if "_" in label else None
+
+        if label.endswith("_down"):
             target = "down"
-        elif label == "pushups_up":
+        elif label.endswith("_up"):
             target = "up"
         else:
             rep_state["debounce_count"] = 0
@@ -578,14 +615,19 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
             return
 
         if phase == "idle" and target == "down":
-            _try_transition("down")
+            _try_transition("down", exercise)
         elif phase == "down" and target == "up":
-            if _try_transition("up"):
+            if _try_transition("up", exercise):
                 rep_state["reps"] += 1
+                rep_state["frames_since_rep"] = 0
+                if exercise:
+                    rep_state["exercise_reps"][exercise] = (
+                        rep_state["exercise_reps"].get(exercise, 0) + 1
+                    )
         elif phase == "up" and target == "down":
-            _try_transition("down")
+            _try_transition("down", exercise)
 
-    def _try_transition(target):
+    def _try_transition(target, exercise=None):
         if rep_state["pending_phase"] == target:
             rep_state["debounce_count"] += 1
         else:
@@ -604,11 +646,14 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
         img = cv2.flip(img, 1)
 
         frame_counter[0] += 1
+        rep_state["frames_since_rep"] += 1
         should_process = (frame_counter[0] % FRAME_SKIP == 0)
 
         if not should_process:
             draw_overlay_panel(img, cached_label[0], cached_conf[0],
                                reps=rep_state["reps"])
+            draw_center_counter(img, rep_state["reps"],
+                                rep_state["frames_since_rep"])
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -649,9 +694,11 @@ def make_video_frame_callback(ml_model, encoder, scaler, model_type,
                         (10, h - 25), cv2.FONT_HERSHEY_SIMPLEX,
                         0.55, (0, 165, 255), 1)
 
+        draw_center_counter(img, rep_state["reps"],
+                            rep_state["frames_since_rep"])
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-    return video_frame_callback
+    return video_frame_callback, rep_state
 
 
 # ---------------------------------------------------------------------------
@@ -784,7 +831,7 @@ def render_camera_section(ml_model, encoder, scaler, model_type,
         unsafe_allow_html=True,
     )
 
-    callback = make_video_frame_callback(
+    callback, rep_state = make_video_frame_callback(
         ml_model, encoder, scaler, model_type, feature_columns, pose_landmarker,
     )
 
@@ -852,6 +899,73 @@ def render_camera_section(ml_model, encoder, scaler, model_type,
         });
         observer.observe(document.body, {childList: true, subtree: true});
         </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if webrtc_ctx.state.playing:
+        if rep_state["start_time"] is None:
+            rep_state["start_time"] = time.time()
+        st.session_state["rep_state_snapshot"] = {
+            "reps": rep_state["reps"],
+            "exercise_reps": dict(rep_state["exercise_reps"]),
+            "start_time": rep_state["start_time"],
+        }
+    elif st.session_state.get("rep_state_snapshot"):
+        snap = st.session_state["rep_state_snapshot"]
+        if snap["reps"] > 0 and snap["start_time"]:
+            elapsed = time.time() - snap["start_time"]
+            _render_workout_summary(snap, elapsed)
+            st.session_state["rep_state_snapshot"] = None
+
+
+def _render_workout_summary(snap, elapsed_seconds):
+    """Render workout summary after camera stops."""
+    mins = int(elapsed_seconds) // 60
+    secs = int(elapsed_seconds) % 60
+
+    total_kcal = 0.0
+    rows_html = ""
+    exercise_names = {
+        "pushups": "Sinav",
+        "situp": "Mekik",
+        "squats": "Squat",
+        "pullups": "Barfiks",
+        "jumping_jacks": "Ziplama",
+    }
+    for ex, count in snap["exercise_reps"].items():
+        name = exercise_names.get(ex, ex)
+        kcal = count * KCAL_PER_REP.get(ex, 0.3)
+        total_kcal += kcal
+        rows_html += f"""
+        <div style="display:flex; justify-content:space-between; padding:8px 0;
+                    border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span>{name}</span>
+            <span style="color:#00d4aa; font-weight:600;">{count} tekrar</span>
+        </div>"""
+
+    st.markdown(
+        f"""
+        <div style="background:rgba(18,18,30,0.85); border:1px solid rgba(0,212,170,0.2);
+                    border-radius:20px; padding:2rem; margin:1.5rem 0;
+                    max-width:500px; margin-left:auto; margin-right:auto;">
+            <div style="text-align:center; margin-bottom:1.2rem;">
+                <div style="font-size:1.4rem; font-weight:700; color:#fff;">
+                    Antrenman Ozeti
+                </div>
+                <div style="color:#7a7a95; font-size:0.9rem; margin-top:4px;">
+                    Sure: {mins} dk {secs} sn
+                </div>
+            </div>
+            {rows_html}
+            <div style="display:flex; justify-content:space-between; padding:12px 0 0;
+                        margin-top:8px;">
+                <span style="font-weight:600; color:#fff;">Tahmini Kalori</span>
+                <span style="color:#f59e0b; font-weight:700; font-size:1.1rem;">
+                    {total_kcal:.1f} kcal
+                </span>
+            </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )

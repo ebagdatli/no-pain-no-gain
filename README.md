@@ -1,124 +1,114 @@
-# Exercise Prediction
+# NoPainNoGain
 
-**Kaggle**: [Multi-Class Exercise Poses for Human Skeleton](https://www.kaggle.com/datasets/dp5995/gym-exercise-mediapipe-33-landmarks)
+[![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-ActiMetric--AI-blue)](https://huggingface.co/spaces/bagdatli/ActiMetric-AI)
 
-Classification: 10 pose classes (5 exercises × 2 positions: up/down). Push-up, Pull-up, Sit-up, Jumping Jack, Squat. MediaPipe 33 landmarks (x,y,z). Metric: Accuracy.
+> **Live Demo:** [https://huggingface.co/spaces/bagdatli/ActiMetric-AI](https://huggingface.co/spaces/bagdatli/ActiMetric-AI)
 
-## Getting the data
+AI-powered real-time exercise recognition and tracking platform. Detects your body movements through camera in real-time, counts repetitions and estimates calories burned.
 
-Data is not in the repo. Download from Kaggle and place in `data/raw/`:
+## Features
 
-- `train.csv` – pose_id, pose, 99 landmark columns (33 × 3)
+- [x] **Exercise Recognition** -- Real-time detection of push-ups, sit-ups, squats, pull-ups and jumping jacks via camera
+- [x] **Rep Counter** -- Automatic repetition counting with state machine (down -> up transition detection + debounce)
+- [x] **Center Counter Animation** -- Large fading rep number appears in the center of the screen on each completed rep
+- [x] **Workout Summary** -- Session summary popup showing exercise counts, duration and estimated calories when camera stops
+- [x] **Calorie Estimation** -- Default per-exercise calorie rates (logic to be refined in future versions)
+- [x] **Performance Optimized** -- Frame skipping, 480p resolution, simplified landmark drawing (33 -> 14 body points)
 
-Kaggle dataset path: `/kaggle/input/exercise-recognition/train.csv` (when running on Kaggle) or download from the link above and place locally.
+## Tech Stack
 
-## Project structure
+| Component | Technology |
+|-----------|-----------|
+| Pose Detection | MediaPipe Pose Landmarker (33 landmarks x 3 axes) |
+| Classification | XGBoost / PyTorch MLP (10 classes: 5 exercises x 2 positions) |
+| Prediction Smoothing | Mode filter over last 12 frames + 65% confidence threshold |
+| Local UI | Streamlit + OpenCV (CV2 window) |
+| Cloud UI | Streamlit + streamlit-webrtc (in-browser camera) |
+| Deployment | Docker on Hugging Face Spaces |
+
+## Project Structure
 
 ```
-ExercisePrediction/
-├── data/
-│   ├── raw/          # train.csv
-│   └── processed/    # cleaned/transformed artifacts
-├── models/           # final_model.pkl or .pt, encoder, scaler, meta
-├── notebooks/
-│   └── main.ipynb    # pipeline: load → train (XGBoost + PyTorch) → save best
-├── src/
-│   ├── data_loader.py
-│   ├── preprocessing.py
-│   ├── train.py
-│   └── predict.py
+NoPainNoGain/
 ├── app/
-│   └── streamlit_app.py
-├── hf_space/         # Hugging Face Space deployment files
+│   └── streamlit_app.py       # Local Streamlit UI (launches CV2 camera)
+├── src/
+│   ├── camera_demo.py         # Real-time pose detection + rep counter
+│   ├── data_loader.py         # Load training data
+│   ├── preprocessing.py       # LabelEncoder, MinMaxScaler, train/test split
+│   ├── train.py               # XGBoost + PyTorch training
+│   └── predict.py             # Model save/load utilities
+├── notebooks/
+│   └── main.ipynb             # Training pipeline: load -> train -> save best
+├── hf_space/                  # Hugging Face Space deployment
+│   ├── app.py                 # Combined UI + WebRTC camera + all logic
 │   ├── Dockerfile
-│   ├── README.md
+│   ├── README.md              # HF Space metadata (sdk: docker)
 │   ├── requirements.txt
-│   ├── app.py        # Combined UI + WebRTC camera
-│   └── models/       # Copy trained model files here before deploy
+│   └── models/                # Copy trained model files here before deploy
+├── data/
+│   ├── raw/                   # train.csv (download from Kaggle)
+│   └── processed/             # Generated artifacts
+├── models/                    # Trained model files (.pkl, .json)
 └── requirements.txt
 ```
 
 ## Setup
 
 ```bash
-cd ExercisePrediction
 python -m venv venv
 venv\Scripts\pip install -r requirements.txt
-venv\Scripts\pip install ipykernel
-venv\Scripts\python -m ipykernel install --user --name=exercise-prediction --display-name="Python (ExercisePrediction)"
 ```
 
-For Jupyter/notebook: select kernel **"Python (ExercisePrediction)"** so xgboost and other deps are found.
+## Usage
 
-## Run
+**Local camera demo** (real-time pose detection with CV2 window):
 
 ```bash
-# From repo root
-python run_competition.py ExercisePrediction
+venv\Scripts\python -m src.camera_demo
 ```
 
-Streamlit (upload CSV with landmark rows to predict). **ExercisePrediction venv kullanin** (xgboost vb. bu venv'de):
+Press `q` to quit. A workout summary will be printed to the terminal.
+
+**Streamlit UI** (local web interface):
 
 ```bash
-cd ExercisePrediction
 venv\Scripts\python -m streamlit run app/streamlit_app.py
-# veya: run_streamlit.bat (Windows)
 ```
 
-Camera demo (real-time pose detection, skeleton overlay):
+## Training
+
+Download [Multi-Class Exercise Poses](https://www.kaggle.com/datasets/dp5995/gym-exercise-mediapipe-33-landmarks) dataset from Kaggle and place `train.csv` in `data/raw/`. Then run:
 
 ```bash
-cd ExercisePrediction && venv\Scripts\python -m src.camera_demo
-# Or from repo root: python -m ExercisePrediction.src.camera_demo
-# Press 'q' to quit. Requires trained model (metadata.json, scaler.pkl, etc.)
+venv\Scripts\python run_train.py --feature-mode upper_body_angles
 ```
 
-## Hugging Face Space Deploy
+**Önerilen:** `upper_body_angles` modu, kamera dikey (yukarıdan) konumlandırıldığında **şınav aşağı** pozisyonunun daha iyi tanınması için üst vücut (burun, omuz, dirsek, bilek) + dirsek açısı özelliklerini kullanır. Eski tam model için:
 
-Uygulamayi Hugging Face Spaces uzerinde yayinlamak icin `hf_space/` klasoru hazir dosyalar icerir. Docker SDK + streamlit-webrtc ile tarayici icinden kamera erisimi saglanir.
+```bash
+venv\Scripts\python run_train.py --feature-mode full
+```
 
-### Adimlar
+### Model Eksikse (models/ klasörü yok veya boş)
 
-1. [huggingface.co/new-space](https://huggingface.co/new-space) adresinden yeni Space olusturun:
-   - **SDK**: Docker
-   - **Hardware**: CPU Basic (ucretsiz)
+Streamlit uygulamasını veya kamera demosunu çalıştırdığınızda `models/` klasörü yoksa veya içinde eğitilmiş model dosyaları (`meta.pkl`, `encoder.pkl`, `scaler.pkl`, `categories.pkl`, `final_model.pkl`) yoksa şu uyarıyı görürsünüz:
 
-2. Space reposunu klonlayin:
-   ```bash
-   git clone https://huggingface.co/spaces/KULLANICI_ADI/SPACE_ADI
-   cd SPACE_ADI
-   ```
+> **Model Henüz Eğitilmedi**  
+> Uygulamayı kullanabilmek için önce modeli eğitmeniz gerekiyor. Aşağıdaki komutu çalıştırarak eğitim sürecini başlatın:
+>
+> `python -m src.train`
+>
+> Eğitim tamamlandıktan sonra bu sayfayı yenileyin.
 
-3. `hf_space/` icerigini klonlanan repoya kopyalayin:
-   ```bash
-   cp -r /path/to/ExercisePrediction/hf_space/* .
-   ```
+Bu durumda önce veri setini indirip `data/raw/train.csv` konumuna koyun, ardından yukarıdaki eğitim komutunu çalıştırın.
 
-4. Egitilmis model dosyalarini `models/` klasorune kopyalayin:
-   ```bash
-   cp /path/to/ExercisePrediction/models/*.pkl models/
-   cp /path/to/ExercisePrediction/models/*.json models/
-   ```
+## Hugging Face Deployment
 
-5. Buyuk dosyalar icin Git LFS ayarlayin:
-   ```bash
-   git lfs install
-   git lfs track "*.pkl"
-   git lfs track "*.pt"
-   git add .gitattributes
-   ```
+The `hf_space/` directory contains everything needed for deployment. See the [deployment guide](hf_space/README.md) or visit the [live demo](https://huggingface.co/spaces/bagdatli/ActiMetric-AI).
 
-6. Push edin:
-   ```bash
-   git add . && git commit -m "Initial deployment" && git push
-   ```
+## Data Source
 
-HF Spaces otomatik olarak Docker image'i build edip deploy edecektir. `pose_landmarker_lite.task` dosyasi calisma zamaninda otomatik indirilir.
-
-## Roadmap (v2)
-
-Asagidaki ozellikler v2 surumunde eklenecektir:
-
-- **Tekrar Sayaci** - Egzersiz tekrarlarinin otomatik sayimi (down → up gecis algilama ile). Mevcut model pozisyonlari (orn. `pushups_down`, `pushups_up`) zaten taniyor; v2'de bu gecisler guvenilir sekilde izlenip tekrar olarak sayilacak.
-- **Kalori Hesaplama** - Yapilan egzersiz turune ve tekrar sayisina bagli olarak tahmini kalori yakimi hesaplanacak. Her egzersiz icin MET (Metabolic Equivalent of Task) degerleri kullanilarak kullaniciya anlik kalori bilgisi sunulacak.
-- **Antrenman Ozeti** - Seans sonunda toplam tekrar, sure ve yakilan kalori bilgisini iceren bir ozet ekrani.
+| Dataset | Description | Link |
+|---------|-------------|------|
+| Multi-Class Exercise Poses | 10 exercise poses (5 exercises x 2 positions) with MediaPipe 33 landmarks | [Kaggle](https://www.kaggle.com/datasets/dp5995/gym-exercise-mediapipe-33-landmarks) |
