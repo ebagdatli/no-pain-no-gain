@@ -1,0 +1,723 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  .app-wrap {
+    background: #0a0a0a;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .screen-label {
+    color: #666;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .phone {
+    width: 260px;
+    height: 520px;
+    background: #0d0d0d;
+    border-radius: 32px;
+    border: 1.5px solid #222;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* SCREEN 1 - LANDING */
+  .s1 { background: linear-gradient(160deg, #0d0d0d 0%, #111820 100%); }
+
+  .s1-notch {
+    width: 60px; height: 6px;
+    background: #222;
+    border-radius: 3px;
+    margin: 12px auto 0;
+  }
+
+  .s1-figure {
+    width: 100px; height: 160px;
+    margin: 8px auto 0;
+    position: relative;
+  }
+
+  .s1-figure svg { width: 100%; height: 100%; }
+
+  .s1-tagline {
+    color: #888;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .s1-title {
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 20px;
+    margin-top: 4px;
+  }
+
+  .s1-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px 0;
+  }
+
+  .s1-card {
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .s1-card.pushup {
+    background: #0f1f14;
+    border: 1px solid #1a4d28;
+  }
+
+  .s1-card.squat {
+    background: #0f1720;
+    border: 1px solid #1a3a50;
+  }
+
+  .s1-card-text { display: flex; flex-direction: column; }
+
+  .s1-card-sub {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .s1-card.pushup .s1-card-sub { color: #2ecc71; }
+  .s1-card.squat .s1-card-sub { color: #3498db; }
+
+  .s1-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .s1-card-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .s1-card.pushup .s1-card-icon { background: #1a4d2880; }
+  .s1-card.squat .s1-card-icon { background: #1a3a5080; }
+
+  /* SCREEN 2 - LIVE TRACKING */
+  .s2 { background: #000; }
+
+  .s2-cam {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #0a1a0a 0%, #050d05 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .s2-skeleton-wrap {
+    width: 100px; height: 220px;
+    position: relative;
+  }
+
+  .s2-counter {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: #2ecc71;
+    line-height: 1;
+    text-shadow: 0 0 20px #2ecc7140;
+  }
+
+  .s2-accuracy-bar {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .s2-acc-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    color: #666;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    margin-top: 6px;
+  }
+
+  .s2-bar-track {
+    width: 8px;
+    height: 120px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .s2-bar-fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 4px;
+    height: 78%;
+    background: linear-gradient(180deg, #2ecc71 0%, #1aad5e 100%);
+  }
+
+  .s2-acc-pct {
+    font-size: 10px;
+    font-weight: 600;
+    color: #2ecc71;
+  }
+
+  .s2-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 72px;
+    background: linear-gradient(180deg, transparent 0%, #000000cc 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .s2-stop-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: #e74c3c;
+    border: 3px solid #ff6b6b;
+    box-shadow: 0 0 16px #e74c3c80;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .s2-notch {
+    position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 6px;
+    background: #1a1a1a;
+    border-radius: 3px;
+  }
+
+  .s2-grid-overlay {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(46,204,113,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,204,113,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* SCREEN 3 - SUMMARY */
+  .s3 { background: #0a0a0a; }
+
+  .s3-bg {
+    position: absolute; inset: 0;
+    background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .s3-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .s3-modal {
+    background: #141414;
+    border: 1px solid #252525;
+    border-radius: 20px;
+    padding: 20px 16px;
+    width: 100%;
+    position: relative;
+  }
+
+  .s3-trophy {
+    width: 36px; height: 36px;
+    background: #1a1500;
+    border: 1px solid #f39c12;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px;
+  }
+
+  .s3-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .s3-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .s3-stat {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .s3-stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .s3-stat-val.green { color: #2ecc71; }
+  .s3-stat-val.gold { color: #f39c12; }
+  .s3-stat-val.blue { color: #3498db; }
+
+  .s3-stat-label {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .s3-feedback {
+    background: #0f1a12;
+    border: 1px solid #1a3d22;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+
+  .s3-feedback-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    color: #2ecc71;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .s3-feedback-text {
+    font-size: 9px;
+    color: #aaa;
+    line-height: 1.5;
+  }
+
+  .s3-btn {
+    width: 100%;
+    padding: 10px;
+    background: #2ecc71;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #0a0a0a;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+
+  /* SCREEN 4 - PROFILE */
+  .s4 { background: #0a0a0a; }
+
+  .s4-header {
+    padding: 20px 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .s4-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2ecc71, #1abc9c);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: #0a0a0a;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .s4-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .s4-league {
+    display: inline-block;
+    background: #1a1a28;
+    border: 1px solid #3a3a60;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 8px;
+    color: #9b9bff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .s4-chart-section {
+    padding: 12px 16px 0;
+  }
+
+  .s4-section-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .s4-chart-area {
+    height: 80px;
+    position: relative;
+  }
+
+  .s4-activity {
+    padding: 12px 16px 0;
+  }
+
+  .s4-act-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .s4-act-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .s4-act-info { flex: 1; }
+
+  .s4-act-title {
+    font-size: 11px;
+    color: #ddd;
+    font-weight: 500;
+  }
+
+  .s4-act-meta {
+    font-size: 9px;
+    color: #555;
+    margin-top: 1px;
+  }
+
+  .s4-act-acc {
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .s4-notch {
+    width: 60px; height: 6px;
+    background: #1a1a1a;
+    border-radius: 3px;
+    margin: 10px auto 0;
+  }
+</style>
+
+<div class="app-wrap">
+
+  <!-- SCREEN 1: LANDING -->
+  <div>
+    <div class="screen-label">01 — Karşılama</div>
+    <div class="phone s1">
+      <div class="s1-notch"></div>
+
+      <div class="s1-figure">
+        <svg viewBox="0 0 100 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <circle cx="50" cy="14" r="8" stroke="#2ecc71" stroke-width="1.5" stroke-dasharray="3 2" fill="none" opacity="0.7"/>
+          <!-- Neck -->
+          <line x1="50" y1="22" x2="50" y2="32" stroke="#2ecc71" stroke-width="1.5" opacity="0.6"/>
+          <!-- Shoulders -->
+          <line x1="50" y1="32" x2="28" y2="50" stroke="#2ecc71" stroke-width="1.5" opacity="0.8"/>
+          <line x1="50" y1="32" x2="72" y2="50" stroke="#2ecc71" stroke-width="1.5" opacity="0.8"/>
+          <!-- Spine -->
+          <line x1="50" y1="32" x2="50" y2="85" stroke="#2ecc71" stroke-width="1.5" opacity="0.9"/>
+          <!-- Left arm -->
+          <line x1="28" y1="50" x2="18" y2="78" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+          <line x1="18" y1="78" x2="12" y2="102" stroke="#2ecc71" stroke-width="1.5" opacity="0.5"/>
+          <!-- Right arm -->
+          <line x1="72" y1="50" x2="82" y2="78" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+          <line x1="82" y1="78" x2="88" y2="102" stroke="#2ecc71" stroke-width="1.5" opacity="0.5"/>
+          <!-- Hips -->
+          <line x1="50" y1="85" x2="34" y2="92" stroke="#2ecc71" stroke-width="1.5" opacity="0.8"/>
+          <line x1="50" y1="85" x2="66" y2="92" stroke="#2ecc71" stroke-width="1.5" opacity="0.8"/>
+          <!-- Left leg -->
+          <line x1="34" y1="92" x2="30" y2="120" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+          <line x1="30" y1="120" x2="28" y2="150" stroke="#2ecc71" stroke-width="1.5" opacity="0.5"/>
+          <!-- Right leg -->
+          <line x1="66" y1="92" x2="70" y2="120" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+          <line x1="70" y1="120" x2="72" y2="150" stroke="#2ecc71" stroke-width="1.5" opacity="0.5"/>
+          <!-- Joint dots -->
+          <circle cx="28" cy="50" r="2.5" fill="#2ecc71" opacity="0.6"/>
+          <circle cx="72" cy="50" r="2.5" fill="#2ecc71" opacity="0.6"/>
+          <circle cx="18" cy="78" r="2" fill="#2ecc71" opacity="0.5"/>
+          <circle cx="82" cy="78" r="2" fill="#2ecc71" opacity="0.5"/>
+          <circle cx="34" cy="92" r="2.5" fill="#2ecc71" opacity="0.6"/>
+          <circle cx="66" cy="92" r="2.5" fill="#2ecc71" opacity="0.6"/>
+          <circle cx="30" cy="120" r="2" fill="#2ecc71" opacity="0.5"/>
+          <circle cx="70" cy="120" r="2" fill="#2ecc71" opacity="0.5"/>
+          <!-- Glow lines -->
+          <line x1="50" y1="32" x2="50" y2="85" stroke="#2ecc71" stroke-width="4" opacity="0.05"/>
+        </svg>
+      </div>
+
+      <div class="s1-tagline">Yapay Zeka Antrenörün</div>
+      <div class="s1-title">Cebinde.</div>
+
+      <div class="s1-cards">
+        <div class="s1-card pushup">
+          <div class="s1-card-text">
+            <div class="s1-card-sub">Analiz</div>
+            <div class="s1-card-name">Şınav Analizi</div>
+          </div>
+          <div class="s1-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4L12 20M12 4L8 8M12 4L16 8M12 20L8 16M12 20L16 16" stroke="#2ecc71" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="s1-card squat">
+          <div class="s1-card-text">
+            <div class="s1-card-sub">Analiz</div>
+            <div class="s1-card-name">Squat Analizi</div>
+          </div>
+          <div class="s1-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 4L6 12C6 16.418 9.582 20 14 20" stroke="#3498db" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 12L6 16L2 12" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="16" cy="5" r="2" stroke="#3498db" stroke-width="1.5"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: LIVE TRACKING -->
+  <div>
+    <div class="screen-label">02 — Canlı Takip</div>
+    <div class="phone s2">
+      <div class="s2-notch"></div>
+      <div class="s2-cam">
+        <div class="s2-grid-overlay"></div>
+        <div class="s2-skeleton-wrap">
+          <svg viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+            <!-- Head -->
+            <circle cx="50" cy="18" r="10" stroke="#2ecc71" stroke-width="1.5" fill="rgba(46,204,113,0.06)"/>
+            <!-- Neck -->
+            <line x1="50" y1="28" x2="50" y2="44" stroke="#2ecc71" stroke-width="1.5"/>
+            <!-- Shoulders -->
+            <line x1="50" y1="44" x2="22" y2="66" stroke="#2ecc71" stroke-width="2"/>
+            <line x1="50" y1="44" x2="78" y2="66" stroke="#2ecc71" stroke-width="2"/>
+            <!-- Spine -->
+            <line x1="50" y1="44" x2="50" y2="118" stroke="#2ecc71" stroke-width="2"/>
+            <!-- L arm -->
+            <line x1="22" y1="66" x2="10" y2="104" stroke="#2ecc71" stroke-width="1.5"/>
+            <line x1="10" y1="104" x2="4" y2="138" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+            <!-- R arm -->
+            <line x1="78" y1="66" x2="90" y2="104" stroke="#2ecc71" stroke-width="1.5"/>
+            <line x1="90" y1="104" x2="96" y2="138" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+            <!-- Hips -->
+            <line x1="50" y1="118" x2="32" y2="128" stroke="#2ecc71" stroke-width="2"/>
+            <line x1="50" y1="118" x2="68" y2="128" stroke="#2ecc71" stroke-width="2"/>
+            <!-- L leg -->
+            <line x1="32" y1="128" x2="28" y2="170" stroke="#2ecc71" stroke-width="1.5"/>
+            <line x1="28" y1="170" x2="26" y2="212" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+            <!-- R leg -->
+            <line x1="68" y1="128" x2="72" y2="170" stroke="#2ecc71" stroke-width="1.5"/>
+            <line x1="72" y1="170" x2="74" y2="212" stroke="#2ecc71" stroke-width="1.5" opacity="0.7"/>
+            <!-- Joints -->
+            <circle cx="22" cy="66" r="3.5" fill="#2ecc71" opacity="0.8"/>
+            <circle cx="78" cy="66" r="3.5" fill="#2ecc71" opacity="0.8"/>
+            <circle cx="10" cy="104" r="2.5" fill="#2ecc71" opacity="0.7"/>
+            <circle cx="90" cy="104" r="2.5" fill="#2ecc71" opacity="0.7"/>
+            <circle cx="32" cy="128" r="3.5" fill="#2ecc71" opacity="0.8"/>
+            <circle cx="68" cy="128" r="3.5" fill="#2ecc71" opacity="0.8"/>
+            <circle cx="28" cy="170" r="2.5" fill="#2ecc71" opacity="0.7"/>
+            <circle cx="72" cy="170" r="2.5" fill="#2ecc71" opacity="0.7"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="s2-counter">12</div>
+
+      <div class="s2-accuracy-bar">
+        <div class="s2-acc-pct">78%</div>
+        <div class="s2-bar-track">
+          <div class="s2-bar-fill" style="height:78%;background:linear-gradient(180deg,#e67e22 0%,#d35400 100%)"></div>
+        </div>
+        <div class="s2-acc-label">Accuracy</div>
+      </div>
+
+      <div class="s2-bottom">
+        <div class="s2-stop-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="white">
+            <rect x="2" y="2" width="12" height="12" rx="2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: SUMMARY -->
+  <div>
+    <div class="screen-label">03 — Özet</div>
+    <div class="phone s3">
+      <div style="position:absolute;inset:0;background:#050d05;display:flex;align-items:center;justify-content:center;opacity:0.4">
+        <svg width="100" height="220" viewBox="0 0 100 220" fill="none">
+          <line x1="50" y1="28" x2="50" y2="44" stroke="#2ecc71" stroke-width="1"/>
+          <line x1="50" y1="44" x2="22" y2="66" stroke="#2ecc71" stroke-width="1"/>
+          <line x1="50" y1="44" x2="78" y2="66" stroke="#2ecc71" stroke-width="1"/>
+          <line x1="50" y1="44" x2="50" y2="118" stroke="#2ecc71" stroke-width="1"/>
+          <circle cx="50" cy="18" r="8" stroke="#2ecc71" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="s3-overlay">
+        <div class="s3-modal">
+          <div class="s3-trophy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#f39c12">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+          </div>
+          <div class="s3-modal-title">Antrenman Tamamlandı</div>
+          <div class="s3-stats">
+            <div class="s3-stat">
+              <div class="s3-stat-val green">42</div>
+              <div class="s3-stat-label">Tekrar</div>
+            </div>
+            <div class="s3-stat">
+              <div class="s3-stat-val gold">850</div>
+              <div class="s3-stat-label">XP</div>
+            </div>
+            <div class="s3-stat">
+              <div class="s3-stat-val blue">1.2</div>
+              <div class="s3-stat-label">rep/sn</div>
+            </div>
+          </div>
+          <div class="s3-feedback">
+            <div class="s3-feedback-label">AI Geri Bildirim</div>
+            <div class="s3-feedback-text">Sırtın biraz fazla kavisliydi. Bir sonraki antrenmanda belini düz tutmaya odaklan.</div>
+          </div>
+          <button class="s3-btn">Profile Kaydet &amp; Devam Et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: PROFILE -->
+  <div>
+    <div class="screen-label">04 — Profil</div>
+    <div class="phone s4">
+      <div class="s4-notch"></div>
+
+      <div class="s4-header">
+        <div class="s4-avatar">PD</div>
+        <div>
+          <div class="s4-name">Pro-Developer</div>
+          <div class="s4-league">Gümüş Lig</div>
+        </div>
+      </div>
+
+      <div class="s4-chart-section">
+        <div class="s4-section-label">Son 7 Gün — Şınav</div>
+        <div class="s4-chart-area">
+          <svg width="100%" height="80" viewBox="0 0 228 80" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2ecc71" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#2ecc71" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- Grid lines -->
+            <line x1="0" y1="20" x2="228" y2="20" stroke="#1a1a1a" stroke-width="1"/>
+            <line x1="0" y1="40" x2="228" y2="40" stroke="#1a1a1a" stroke-width="1"/>
+            <line x1="0" y1="60" x2="228" y2="60" stroke="#1a1a1a" stroke-width="1"/>
+            <!-- Area fill -->
+            <path d="M0,62 L32,48 L64,38 L96,52 L128,28 L160,18 L192,22 L228,10 L228,80 L0,80 Z" fill="url(#chartGrad)"/>
+            <!-- Line -->
+            <path d="M0,62 L32,48 L64,38 L96,52 L128,28 L160,18 L192,22 L228,10" stroke="#2ecc71" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Dots -->
+            <circle cx="0" cy="62" r="3" fill="#2ecc71"/>
+            <circle cx="32" cy="48" r="3" fill="#2ecc71"/>
+            <circle cx="64" cy="38" r="3" fill="#2ecc71"/>
+            <circle cx="96" cy="52" r="3" fill="#2ecc71"/>
+            <circle cx="128" cy="28" r="3" fill="#2ecc71"/>
+            <circle cx="160" cy="18" r="3" fill="#2ecc71"/>
+            <circle cx="192" cy="22" r="3" fill="#2ecc71"/>
+            <circle cx="228" cy="10" r="4" fill="#2ecc71" stroke="#0d0d0d" stroke-width="2"/>
+            <!-- Labels -->
+            <text x="0" y="78" font-size="7" fill="#444" font-family="sans-serif">Pzt</text>
+            <text x="30" y="78" font-size="7" fill="#444" font-family="sans-serif">Sal</text>
+            <text x="60" y="78" font-size="7" fill="#444" font-family="sans-serif">Çar</text>
+            <text x="90" y="78" font-size="7" fill="#444" font-family="sans-serif">Per</text>
+            <text x="120" y="78" font-size="7" fill="#444" font-family="sans-serif">Cum</text>
+            <text x="152" y="78" font-size="7" fill="#444" font-family="sans-serif">Cmt</text>
+            <text x="182" y="78" font-size="7" fill="#444" font-family="sans-serif">Paz</text>
+            <text x="215" y="78" font-size="7" fill="#2ecc71" font-family="sans-serif">Dün</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="s4-activity">
+        <div class="s4-section-label">Aktivite Geçmişi</div>
+        <div class="s4-act-item">
+          <div class="s4-act-dot" style="background:#2ecc71"></div>
+          <div class="s4-act-info">
+            <div class="s4-act-title">50 Şınav</div>
+            <div class="s4-act-meta">Dün &nbsp;·&nbsp; 01:45 dk</div>
+          </div>
+          <div class="s4-act-acc" style="color:#2ecc71">%92</div>
+        </div>
+        <div class="s4-act-item">
+          <div class="s4-act-dot" style="background:#3498db"></div>
+          <div class="s4-act-info">
+            <div class="s4-act-title">30 Squat</div>
+            <div class="s4-act-meta">Pazartesi &nbsp;·&nbsp; 02:10 dk</div>
+          </div>
+          <div class="s4-act-acc" style="color:#3498db">%85</div>
+        </div>
+        <div class="s4-act-item">
+          <div class="s4-act-dot" style="background:#9b59b6"></div>
+          <div class="s4-act-info">
+            <div class="s4-act-title">42 Şınav</div>
+            <div class="s4-act-meta">Pazar &nbsp;·&nbsp; 01:28 dk</div>
+          </div>
+          <div class="s4-act-acc" style="color:#9b59b6">%88</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

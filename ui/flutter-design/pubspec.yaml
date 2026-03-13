@@ -1,0 +1,42 @@
+name: fitness_ai
+description: AI-powered fitness tracking app with pose analysis.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Camera & ML
+  camera: ^0.10.5+9              # Kamera erişimi
+  google_mlkit_pose_detection: ^0.10.0  # Pose/iskelet tespiti
+
+  # State Management
+  flutter_riverpod: ^2.5.1       # State yönetimi
+
+  # UI
+  google_fonts: ^6.2.1           # Bebas Neue + DM Sans
+  fl_chart: ^0.68.0              # Profil ekranı çizgi grafiği
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Utils
+  shared_preferences: ^2.2.3     # Kullanıcı verisi kalıcılığı
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: BebasNeue
+      fonts:
+        - asset: assets/fonts/BebasNeue-Regular.ttf
