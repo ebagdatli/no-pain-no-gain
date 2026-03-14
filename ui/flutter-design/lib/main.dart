@@ -5,6 +5,7 @@ import 'theme/app_theme.dart';
 import 'screens/landing_screen.dart';
 import 'screens/live_tracking_screen.dart';
 import 'screens/summary_profile_screen.dart';
+import 'screens/activity_detail_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: FitnessAiApp()));
@@ -37,32 +38,46 @@ final _router = GoRouter(
             return LiveTrackingScreen(
               repCount: 12,
               accuracy: 78,
-              onStop: () => context.go('/summary'),
+              onStop: () {
+                // Task 1.2: Antrenman bitince ResultScreen modal olarak açılır
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  isDismissible: false,
+                  enableDrag: false,
+                  builder: (_) => SummaryModal(
+                    result: const WorkoutResult(
+                      reps: 42,
+                      xp: 850,
+                      speed: 1.2,
+                      feedback:
+                          'Sırtın biraz fazla kavisliydi. Bir sonraki antrenmanda belini düz tutmaya odaklan.',
+                    ),
+                    onSave: () {
+                      Navigator.of(context).pop(); // Modal kapat
+                      context.go('/profile'); // Profil sekmesine yönlendir
+                    },
+                  ),
+                );
+              },
             );
           },
-        ),
-        GoRoute(
-          path: '/summary',
-          builder: (context, state) => Stack(
-            children: [
-              const LiveTrackingScreen(repCount: 42, accuracy: 92),
-              SummaryModal(
-                result: const WorkoutResult(
-                  reps: 42,
-                  xp: 850,
-                  speed: 1.2,
-                  feedback: 'Sırtın biraz fazla kavisliydi. Bir sonraki antrenmanda belini düz tutmaya odaklan.',
-                ),
-                onSave: () => context.go('/profile'),
-              ),
-            ],
-          ),
         ),
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfileScreen(),
         ),
       ],
+    ),
+    // Activity detail — full-screen route (shell dışı)
+    GoRoute(
+      path: '/activity-detail',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final session = state.extra as TrainingSession?;
+        return ActivityDetailScreen(item: session);
+      },
     ),
   ],
 );
@@ -79,46 +94,47 @@ class ScaffoldWithNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: child,
-      // SafeArea to avoid overlapping on certain devices if needed
       bottomNavigationBar: _buildBottomBar(context),
     );
   }
 
+  // Task 1.1: 3 sekme — Ana Sayfa, Kamera, Profil (Özet kaldırıldı)
   Widget _buildBottomBar(BuildContext context) {
-    // Current URI to determine the active tab
     final String location = GoRouterState.of(context).uri.toString();
     int currentIndex = _calculateSelectedIndex(location);
 
-    return BottomNavigationBar(
-      backgroundColor: AppColors.bgSurface2,
-      selectedItemColor: AppColors.brandGreen,
-      unselectedItemColor: AppColors.textMuted,
-      showUnselectedLabels: true,
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      onTap: (int index) => _onItemTapped(index, context),
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Ana Sayfa',
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.borderSubtle, width: 0.5),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.camera_alt_outlined),
-          activeIcon: Icon(Icons.camera_alt),
-          label: 'Kamera',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.analytics_outlined),
-          activeIcon: Icon(Icons.analytics),
-          label: 'Özet',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ],
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: AppColors.bgSurface2,
+        selectedItemColor: AppColors.brandGreen,
+        unselectedItemColor: AppColors.textMuted,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        currentIndex: currentIndex,
+        onTap: (int index) => _onItemTapped(index, context),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Ana Sayfa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.camera_alt_outlined),
+            activeIcon: Icon(Icons.camera_alt),
+            label: 'Kamera',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profil',
+          ),
+        ],
+      ),
     );
   }
 
@@ -126,11 +142,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
     if (location.startsWith('/tracking')) {
       return 1;
     }
-    if (location.startsWith('/summary')) {
-      return 2;
-    }
     if (location.startsWith('/profile')) {
-      return 3;
+      return 2;
     }
     return 0;
   }
@@ -144,9 +157,6 @@ class ScaffoldWithNavBar extends StatelessWidget {
         context.go('/tracking');
         break;
       case 2:
-        context.go('/summary');
-        break;
-      case 3:
         context.go('/profile');
         break;
     }

@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 
 // ════════════════════════════════════════════════════════════
 //  EKRAN 1 — Karşılama (Landing Screen)
+//  Task 4: İçerik dikey eksende ortalanmış, ferah spacing
 // ════════════════════════════════════════════════════════════
 
 enum ExerciseType { pushup, squat }
@@ -24,50 +25,49 @@ class LandingScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Notch sim
-              const _Notch(),
-              const SizedBox(height: 8),
-
-              // Neon skeleton figure
-              const SizedBox(
-                width: 100,
-                height: 160,
-                child: _SkeletonFigure(),
-              ),
-
-              const SizedBox(height: 4),
-
-              // Sub-tagline
-              Text(
-                'YAPAY ZEKA ANTRENÖRÜN',
-                style: AppTypography.labelXs.copyWith(
-                  color: const Color(0xFF888888),
-                  letterSpacing: 3,
-                ),
-              ),
-
-              const SizedBox(height: 2),
-
-              // Main title
-              const Text(
-                'Cebinde.',
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 28,
-                  color: AppColors.textPrimary,
-                  height: 1.2,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Exercise cards
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Center(
+            // Task 4: justifyContent: 'center' mantığı — dikey ortalama
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Neon skeleton figure
+                    const SizedBox(
+                      width: 120,
+                      height: 180,
+                      child: _SkeletonFigure(),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Sub-tagline
+                    Text(
+                      'YAPAY ZEKA ANTRENÖRÜN',
+                      style: AppTypography.labelXs.copyWith(
+                        color: const Color(0xFF888888),
+                        letterSpacing: 3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Main title
+                    const Text(
+                      'Cebinde.',
+                      style: TextStyle(
+                        fontFamily: 'BebasNeue',
+                        fontSize: 36,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Exercise cards — daha geniş padding ve aralarında daha fazla boşluk
                     _ExerciseCard(
                       label: 'Analiz',
                       name: 'Şınav Analizi',
@@ -75,7 +75,7 @@ class LandingScreen extends StatelessWidget {
                       icon: _ArrowUpDownIcon(),
                       onTap: () => onSelectExercise?.call(ExerciseType.pushup),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     _ExerciseCard(
                       label: 'Analiz',
                       name: 'Squat Analizi',
@@ -86,7 +86,7 @@ class LandingScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -121,7 +121,7 @@ class _ExerciseCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: AppRadius.lg_,
@@ -140,13 +140,13 @@ class _ExerciseCard extends StatelessWidget {
                     letterSpacing: 1.5,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(name, style: AppTypography.cardName),
               ],
             ),
             Container(
-              width: 36,
-              height: 36,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 color: iconBg,
                 shape: BoxShape.circle,
@@ -293,20 +293,4 @@ class _SquatPainter extends CustomPainter {
   }
   @override
   bool shouldRepaint(_) => false;
-}
-
-// ── Notch ─────────────────────────────────────────────────────
-class _Notch extends StatelessWidget {
-  const _Notch();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 60,
-    height: 6,
-    margin: const EdgeInsets.only(top: 8),
-    decoration: BoxDecoration(
-      color: AppColors.borderDefault,
-      borderRadius: AppRadius.sm_,
-    ),
-  );
 }
